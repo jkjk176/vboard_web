@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome</title>
+  <link rel="stylesheet" href="../assets/css/index.css" />
+  <script type='text/javascript' src='../assets/dist/particle.min.js'></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      particleground(document.getElementById('particles'), {
+        dotColor: '#5cbdaa',
+        lineColor: '#5cbdaa'
+      });
+      var intro = document.getElementById('intro');
+      intro.style.marginTop = - intro.offsetHeight / 2 + 'px';
+    }, false);
+  </script>
+</head>
+
+<body>
+  <div id="particles">
+    <div id="intro">
+      <h1>点击左侧菜单查看数据</h1>
+      <a>
+        <img src="../assets/img/logo.png" alt="" class="btn">
+      </a>
+    </div>
+  </div>
+</body>
+
+</html>

@@ -1,0 +1,164 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome</title>
+  <link rel="stylesheet" href="assets/css/index.css" />
+  <script type="text/javascript" src="assets/dist/underscore.min.js"></script>
+  <script type="text/javascript" src="assets/dist/particle.min.js"></script>
+  <script type="text/javascript" src="assets/dist/webix.min.js"></script>
+  <script type="text/javascript" src="assets/dist/xlsx.full.min.js"></script>
+  <script>
+    function convert(n) {
+      return isNaN(+n) ? 0 : +n;
+    }
+
+    function parseData(wb) {
+      const data = {};
+
+      const dict = XLSX.utils.sheet_to_json(wb.Sheets['字典'], { header: 1, raw: false });
+      data.periods = dict[0];
+      data.banks = dict[1];
+      data.provinces = dict[2];
+
+      data.fakeData = [];
+      _.each(data.periods, (p) => {
+        _.each(data.provinces, (v) => {
+          _.each(data.banks, (b) => {
+            data.fakeData.push({ period: p, bank: b, province: v });
+          });
+        });
+      });
+
+      let shop = XLSX.utils.sheet_to_json(wb.Sheets['商户'], { header: 1, defval: 0 });
+      shop = _.rest(shop);
+      shop = _.map(shop, (v) => _.rest(v));
+      shop = _.flatten(shop);
+      shop = _.map(shop, (v) => convert(v));
+      _.each(data.fakeData, (v, i) => v.shopCount = shop[i]);
+
+      let mau = XLSX.utils.sheet_to_json(wb.Sheets['月活'], { header: 1, defval: 0 });
+      mau = _.rest(mau, 2);
+      mau = _.map(mau, (v) => _.rest(v));
+      mau = _.flatten(mau);
+      mau = _.map(mau, (v) => convert(v));
+      _.each(data.fakeData, (v, i) => {
+        v.walletPublicMAU = mau[2 * i + 1];
+        v.walletPrivateMAU = mau[2 * i];
+      });
+
+      let txAmount = XLSX.utils.sheet_to_json(wb.Sheets['金额'], { header: 1, defval: 0 });
+      txAmount = _.rest(txAmount, 2);
+      txAmount = _.map(txAmount, (v) => _.rest(v));
+      txAmount = _.flatten(txAmount);
+      txAmount = _.map(txAmount, (v) => convert(v));
+      _.each(data.fakeData, (v, i) => {
+        v.txAmountOffline = txAmount[2 * i + 1];
+        v.txAmountOnline = txAmount[2 * i];
+      });
+
+      let txCount = XLSX.utils.sheet_to_json(wb.Sheets['笔数'], { header: 1, defval: 0 });
+      txCount = _.rest(txCount, 2);
+      txCount = _.map(txCount, (v) => _.rest(v));
+      txCount = _.flatten(txCount);
+      txCount = _.map(txCount, (v) => convert(v));
+      _.each(data.fakeData, (v, i) => {
+        v.txCountOffline = txCount[2 * i + 1];
+        v.txCountOnline = txCount[2 * i];
+      });
+
+      let works = XLSX.utils.sheet_to_json(wb.Sheets['工作'], { header: 1, raw: false });
+      works = _.map(works, (v) => {
+        if (v.length === 0) {
+          return ['---'];
+        } else {
+          return v;
+        }
+      });
+      works = _.flatten(works).join('').split(/-+/);
+      data.works = works;
+
+      return data;
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const url = 'pages/board.html';
+
+      const readFile = (file) => {
+        const reader = new FileReader();
+        reader.readAsArrayBuffer(file);
+        reader.onload = () => {
+          webix.storage.local.put('data', parseData(XLSX.read(reader.result)));
+          location = url;
+        };
+        reader.onerror = () => {
+          console.error(reader.error);
+        };
+      }
+
+      particleground(document.getElementById('particles'), {
+        dotColor: '#5cbdaa',
+        lineColor: '#5cbdaa'
+      });
+
+      const intro = document.getElementById('intro');
+      intro.style.marginTop = - intro.offsetHeight / 2 + 'px';
+
+      const img = document.querySelector('img');
+      img.addEventListener('dragenter', (event) => {
+        event.stopPropagation();
+        event.preventDefault();
+      });
+      img.addEventListener('dragover', (event) => {
+        event.stopPropagation();
+        event.preventDefault();
+      });
+      img.addEventListener('drop', (event) => {
+        event.stopPropagation();
+        event.preventDefault();
+        readFile(event.dataTransfer.files[0]);
+      });
+
+      const input = document.querySelector('input');
+      input.addEventListener('change', () => {
+        readFile(input.files[0]);
+      });
+
+      const a = document.querySelector('a');
+      a.addEventListener('click', () => {
+        if (webix.storage.local.get('data')) {
+          location = url;
+        } else {
+          document.querySelector('input').click();
+        }
+      });
+
+      const h1 = document.querySelector('h1');
+      h1.addEventListener('click', () => {
+        if (confirm('确定要清除缓存吗？')) {
+          webix.storage.local.clear();
+          alert('缓存已清除');
+        }
+      });
+
+    }, false);
+  </script>
+</head>
+
+<body>
+  <div id="particles">
+    <div id="intro">
+      <h1>欢迎使用</h1>
+      <a href="javascript:void(0)">
+        <img src="assets/img/logo.png" alt="" class="btn">
+      </a>
+      <input type="file" style="display: none;">
+    </div>
+  </div>
+</body>
+
+</html>
