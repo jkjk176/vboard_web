@@ -7,29 +7,40 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Welcome</title>
-  <link rel="stylesheet" href="../assets/css/index.css" />
-  <script type='text/javascript' src='../assets/dist/particle.min.js'></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      particleground(document.getElementById('particles'), {
-        dotColor: '#5cbdaa',
-        lineColor: '#5cbdaa'
-      });
-      var intro = document.getElementById('intro');
-      intro.style.marginTop = - intro.offsetHeight / 2 + 'px';
-    }, false);
-  </script>
+  <link rel="stylesheet" href="../assets/dist/skins/dark.css">
+  <link rel="stylesheet" href="../assets/dist/skins/materialdesignicons.min.css">
+  <script src="../assets/dist/webix.min.js"></script>
+  <script src="../assets/dist/echarts.min.js"></script>
+  <script src="../assets/dist/underscore.min.js"></script>
+  <script src="../assets/js/main.js"></script>
 </head>
 
 <body>
-  <div id="particles">
-    <div id="intro">
-      <h1>点击左侧菜单查看数据</h1>
-      <a>
-        <img src="../assets/img/logo.png" alt="" class="btn">
-      </a>
-    </div>
-  </div>
+  <script>
+    const data = webix.storage.local.get('data');
+    _.extend(window, data);
+    function createChart2(ele, theme = 'dark') {
+      const chart = window.echarts.init(document.querySelector(`div[view_id='${ele}']`), theme);
+      window.onresize = () => { chart.resize(); };
+      return chart;
+    }
+    const flex = {
+      view: 'flexlayout',
+      cols: [],
+    };
+    _.each(screen.data, (v, i) => {
+      flex.cols.push({ id: `chart${i}`, minHeight: screen.height });
+      if (screen.width) {
+        flex.cols[flex.cols.length - 1].minWidth = screen.width;
+      }
+    });
+    webix.ui({
+      view: 'scrollview', body: flex
+    });
+    _.each(screen.data, (v, i) => {
+      drawBarLineChart(createChart2(`chart${i}`), transformBarLineData(periods, v.values, v.names), v.title);
+    });
+  </script>
 </body>
 
 </html>

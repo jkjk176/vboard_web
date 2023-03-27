@@ -82,6 +82,47 @@
       works = _.flatten(works).join('').split(/-+/);
       data.works = works;
 
+      let walletCount = XLSX.utils.sheet_to_json(wb.Sheets['开立数'], { header: 1, defval: 0 });
+      walletCount[0][0] = 'periods';
+      walletCount[0] = _.map(walletCount[0], (v) => `${v}`);
+      data.walletCount = walletCount;
+
+      let transAmount = XLSX.utils.sheet_to_json(wb.Sheets['转账金额'], { header: 1, defval: 0 });
+      transAmount[0][0] = 'periods';
+      transAmount[0] = _.map(transAmount[0], (v) => `${v}`);
+      data.transAmount = transAmount;
+
+      let transCount = XLSX.utils.sheet_to_json(wb.Sheets['转账笔数'], { header: 1, defval: 0 });
+      transCount[0][0] = 'periods';
+      transCount[0] = _.map(transCount[0], (v) => `${v}`);
+      data.transCount = transCount;
+
+      let screen = XLSX.utils.sheet_to_json(wb.Sheets['主屏'], { header: 1, raw: false });
+      let result = [];
+      for (let i = 1; i < screen.length;) {
+        let temp = [];
+        if (screen[i][0]) {
+          temp.push(screen[i]);
+          i++;
+          while (i < screen.length && !screen[i][0]) {
+            temp.push(screen[i]);
+            i++;
+          }
+          result.push(temp);
+        } else {
+          i++;
+          continue;
+        }
+      }
+      result = _.map(result, (v) => {
+        const data = {};
+        data.title = v[0][0];
+        data.names = _.map(v, (v1) => v1[1]);
+        data.values = _.map(v, (v1) => _.rest(v1, 2));
+        return data;
+      });
+      data.screen = { data: result, height: +screen[0][0], width: +screen[0][1] }
+
       return data;
     };
 

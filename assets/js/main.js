@@ -1,39 +1,3 @@
-function randomPairData() {
-  const total = _.map(periods, (v, i) => _.random((i + 1) * 1000, (i + 2) * 1000));
-  const increment = [0];
-  for (let i = 1; i < total.length; ++i) {
-    increment.push(total[i] - total[i - 1]);
-  }
-  const base = _.map(periods, (v, i) => total[i] - increment[i]);
-  return { total, increment, base };
-}
-
-function randomArrayData(seed) {
-  return _.map(seed, () => _.random(1000, 5000));
-}
-
-function randomRadarData(xAxis, points) {
-  const dataset = { xAxis: xAxis, points: points };
-  dataset.source = _.map(xAxis, () => {
-    return _.map(points, () => _.random(0, 100));
-  });
-  return dataset;
-}
-
-function randomPieLineData(xAxis, category) {
-  const p = ['periods'];
-  const result = [];
-  _.each(xAxis, v => p.push(v.toString()));
-  result.push(p);
-  _.each(category, (c) => {
-    const v = [];
-    v.push(c);
-    _.each(xAxis, (p) => v.push(_.random((p + 1) * 1000, (p + 1) * 2000)));
-    result.push(v);
-  })
-  return { source: result };
-}
-
 function buildTxAmount(input, category) {
   const result = [];
   const p = ['periods'];
@@ -522,8 +486,9 @@ function transformBarLineData(xAxis, data, names, suffix = '趋势') {
   return dataset;
 }
 
-function drawBarLineChart(chart, dataset) {
+function drawBarLineChart(chart, dataset, title = '') {
   var option = {
+    title: { text: title },
     tooltip: {
       trigger: 'axis',
       axisPointer: {
@@ -862,34 +827,22 @@ function createDataset(id, input) {
   var dataset, category;
   switch (id) {
     case 'a1':
-    case 'a2':
-    case 'a3':
-    case 'a4':
-    case 'a5':
-      dataset = randomPairData();
-      dataset = [dataset.increment, dataset.total];
-      dataset = transformBarLineData(periods, dataset, ['增量', '总量']);
+      dataset = { source: walletCount };
       break;
-    case 'a6':
-      dataset = randomArrayData(periods);
-      dataset = [dataset];
-      dataset = transformBarLineData(periods, dataset, ['日活']);
+    case 'a2':
+      dataset = { source: transAmount };
+      break;
+    case 'a3':
+      dataset = { source: transCount };
       break;
     case 'b1':
-      if (!input.aggregate) input.aggregate = '1';
-      input = processInput(input, ['periods', 1, 2], [periods, banks, provinces])
-      category = generateCategory(input, input.aggregate);
-      if (category.length === 0) return null;
-      dataset = randomPieLineData(input.periods, category);
-      break;
-    case 'b2':
       input.aggregate = input.aggregate + '3';
       input = processInput(input, ['periods', 1, 2, 3], [periods, banks, provinces, ['总量']])
       category = generateCategory(input, input.aggregate);
       if (category.length === 0) return null;
       dataset = buildWalletMAU(input, category);
       break;
-    case 'b3':
+    case 'b2':
       input = processDetailInput(input, [1, 2, 3], [banks, provinces, ['个人', '对公']], 3)
       if (!input) return null;
       dataset = buildWalletDetail(input);
@@ -945,21 +898,13 @@ function createView(id) {
     case 'a1':
     case 'a2':
     case 'a3':
-    case 'a4':
-    case 'a5':
-    case 'a6':
       view.rows = [{ id: 'chart' }];
       setTimeout(function () {
-        drawBarLineChart(createChart('chart'), createDataset(id));
+        drawOverviewChart(createChart('chart'), createDataset(id));
       });
       break;
     case 'b1':
-    case 'b2':
-      if (id === 'b1') {
-        widgets = [w(0), w(1), w(2), w(6), w(7)];
-      } else {
-        widgets = [w(0), w(1), w(2), w(3), w(6), w(7)];
-      }
+      widgets = [w(0), w(1), w(2), w(3), w(6), w(7)];
       view.rows = [
         w('accordion', null, {
           widgets: widgets, handler: function () {
@@ -972,7 +917,7 @@ function createView(id) {
         { id: 'chart' },
       ];
       break;
-    case 'b3':
+    case 'b2':
       widgets = [w(1), w(2), w(3), w(6), w(8)];
       view.rows = [
         w('accordion', null, {
@@ -1070,19 +1015,15 @@ function setup() {
   const menuData = [
     {
       id: 'a', icon: 'mdi mdi-view-dashboard', value: '趋势概览', data: [
-        { id: 'a1', value: '钱包开立数' },
-        { id: 'a2', value: '流通金额' },
-        { id: 'a3', value: '流通笔数' },
-        { id: 'a4', value: '申请额度' },
-        { id: 'a5', value: '商户数' },
-        { id: 'a6', value: '平均日活' },
+        { id: 'a1', value: '开立数量' },
+        { id: 'a2', value: '转账金额' },
+        { id: 'a3', value: '转账笔数' },
       ]
     },
     {
       id: 'b', icon: 'mdi mdi-wallet-outline', value: '钱包数据', data: [
-        { id: 'b1', value: '开立数量' },
-        { id: 'b2', value: '月活趋势' },
-        { id: 'b3', value: '月活明细' },
+        { id: 'b1', value: '月活趋势' },
+        { id: 'b2', value: '月活明细' },
       ]
     },
     {
