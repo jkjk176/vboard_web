@@ -21,7 +21,7 @@
     _.extend(window, data);
     function createChart2(ele, theme = 'dark') {
       const chart = window.echarts.init(document.querySelector(`div[view_id='${ele}']`), theme);
-      window.onresize = () => { chart.resize(); };
+      window.addEventListener('resize', () => { chart.resize() });
       return chart;
     }
     const flex = {
