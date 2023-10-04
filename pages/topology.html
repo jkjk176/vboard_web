@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html style="height: 100%">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Topology</title>
+  <script src="../assets/dist/webix.min.js"></script>
+  <script src="../assets/dist/echarts.min.js"></script>
+  <script src="../assets/dist/underscore.min.js"></script>
+  <script src="../assets/dist/xlsx.full.min.js"></script>
+  <script>
+    function parseData(wb) {
+      const data = {};
+
+      const dict = XLSX.utils.sheet_to_json(wb.Sheets['Sheet1'], { header: 1, raw: false });
+      dict.shift();
+
+      data.categories = [{ name: '机柜' }];
+      data.nodes = [];
+      data.links = [];
+
+      let racks = [];
+      dict.forEach(e => {
+        racks.push(e[0].trim());
+        racks.push(e[2].trim());
+      });
+      racks = _.unique(racks);
+      racks = racks.map((e, i) => {
+        return {
+          name: e,
+          symbolSize: 15,
+          category: 0,
+          itemStyle: {
+            opacity: 0.6,
+          }
+        };
+      })
+
+      let devices = [];
+      dict.forEach(e => {
+        devices.push(`[${e[0].trim()}]${e[1].trim()}`);
+        devices.push(`[${e[2].trim()}]${e[3].trim()}`);
+      });
+      devices = _.unique(devices);
+      let cats = [];
+      devices.forEach((e) => {
+        cats.push(
+          e.replace(/\[.+\]/, '').replace(/\d/g, '').replace(/\-$/, '')
+        );
+      });
+      cats = _.unique(cats);
+      cats.forEach(e => {
+        data.categories.push({ name: e });
+      });
+      devices = devices.map((e, i) => {
+        return {
+          name: e,
+          symbolSize: 10,
+          category: _.findIndex(
+            data.categories,
+            el => el.name === e.replace(/\[.+\]/, '').replace(/\d/g, '').replace(/\-$/, '')
+          )
+        };
+      });
+
+      data.nodes = _.flatten([racks, devices]);
+
+      dict.forEach(e => {
+        data.links.push({ source: e[0].trim(), target: `[${e[0].trim()}]${e[1].trim()}` });
+        data.links.push({ source: e[2].trim(), target: `[${e[2].trim()}]${e[3].trim()}` });
+        data.links.push({ source: `[${e[0].trim()}]${e[1].trim()}`, target: `[${e[2].trim()}]${e[3].trim()}` });
+      });
+
+      return data;
+    };
+
+    function readFile(file) {
+      const reader = new FileReader();
+      reader.readAsArrayBuffer(file);
+      reader.onload = () => {
+        webix.storage.local.put('data', parseData(XLSX.read(reader.result)));
+        const data = webix.storage.local.get('data');
+        renderChart(data);
+      };
+      reader.onerror = () => {
+        console.error(reader.error);
+      };
+    }
+
+    function renderChart(data) {
+      if (window.chart) window.chart.dispose();
+      data.nodes.forEach(function (node) {
+        node.label = {
+          show: node.symbolSize >= 15
+        };
+      });
+      const dom = document.getElementById('container');
+      const myChart = echarts.init(dom, 'null', {
+        renderer: 'canvas',
+        useDirtyRect: false
+      });
+      const option = {
+        tooltip: {},
+        legend: [{ data: data.categories, }],
+        series: [{
+          name: 'topology',
+          type: 'graph',
+          layout: 'force',
+          data: data.nodes,
+          links: data.links,
+          categories: data.categories,
+          roam: true,
+          label: { position: 'right', },
+          lineStyle: {
+            color: 'source',
+            curveness: 0.3,
+          },
+          emphasis: {
+            focus: 'adjacency',
+            lineStyle: { width: 5, }
+          },
+          force: {
+            repulsion: 150,
+            friction: 0.2,
+            edgeLength: 10,
+            gravity: 0.3,
+          }
+        }]
+      };
+      myChart.setOption(option);
+      window.addEventListener('resize', myChart.resize);
+      window.chart = myChart;
+    }
+
+    webix.ready(function () {
+      const input = document.querySelector('input');
+      input.addEventListener('change', () => {
+        readFile(input.files[0]);
+        document.querySelector('form').reset();
+      });
+
+      const div = document.querySelector('div');
+      div.addEventListener('dblclick', () => {
+        input.click();
+      });
+
+      const data = webix.storage.local.get('data');
+      if (data) renderChart(data);
+    });
+  </script>
+</head>
+
+<body style="height: 100%; margin: 0">
+  <div id="container" style="height: 100%"></div>
+  <form><input type="file" style="display: none;"></form>
+</body>
+
+</html>
